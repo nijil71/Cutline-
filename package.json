@@ -1,0 +1,10 @@
+{
+  "name": "cutline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Chrome/Edge extension: screenshots named from page context instead of a timestamp.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

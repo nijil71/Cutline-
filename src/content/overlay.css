@@ -1,0 +1,249 @@
+/* Overlay + toast chrome.
+ *
+ * These elements live inside arbitrary pages, so every rule is defensive:
+ * `all: initial` on each root blocks inherited page styles, and the children
+ * re-declare everything they need. Without this, sites with aggressive global
+ * CSS (`* { box-sizing }`, `img { width: 100% }`, print stylesheets) visibly
+ * break the overlay. */
+
+/* `!important` on the load-bearing properties is not paranoia: a page rule
+ * like `img { width: 100% !important }` or a `* { position: static !important }`
+ * reset would otherwise beat us on specificity and destroy the overlay. Only
+ * geometry and visibility are forced; cosmetics are left normal. */
+
+#cl-overlay,
+#cl-toast {
+  all: initial;
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  font-family: ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------- the overlay */
+
+#cl-overlay {
+  inset: 0 !important;
+  display: block !important;
+  cursor: crosshair !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#cl-overlay .cl-shot {
+  position: fixed !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  object-fit: fill !important;
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+  pointer-events: none !important;
+}
+
+#cl-overlay .cl-dim {
+  position: fixed !important;
+  inset: 0 !important;
+  display: block !important;
+  background: rgba(0, 0, 0, 0.45) !important;
+  pointer-events: none !important;
+}
+
+/* The huge spread turns the selection box into a hole punched through the
+   dimming layer, so there is no second element to keep in sync. */
+#cl-overlay .cl-sel {
+  position: fixed !important;
+  display: none;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  border: 1px solid #fff !important;
+  background: transparent !important;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45) !important;
+  pointer-events: none !important;
+}
+
+#cl-overlay .cl-size,
+#cl-overlay .cl-hint {
+  position: fixed;
+  display: block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(17, 17, 20, 0.92);
+  color: #f4f4f5;
+  font-size: 12px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+#cl-overlay .cl-size { display: none; }
+
+#cl-overlay .cl-hint {
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+/* --------------------------------------------------------------- the toast */
+
+#cl-toast {
+  right: 20px !important;
+  bottom: 20px !important;
+  left: auto !important;
+  top: auto !important;
+  display: block !important;
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  padding: 14px 16px 0;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: rgba(17, 17, 20, 0.97);
+  color: #f4f4f5;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+#cl-toast.cl-error,
+#cl-toast.cl-ok {
+  padding: 14px 16px;
+  width: auto;
+  max-width: 420px;
+}
+
+#cl-toast.cl-error { background: rgba(80, 20, 24, 0.97); }
+
+#cl-toast .cl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+
+#cl-toast .cl-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #71717a;
+}
+
+#cl-toast .cl-dot[data-confidence="high"]   { background: #4ade80; }
+#cl-toast .cl-dot[data-confidence="medium"] { background: #fbbf24; }
+#cl-toast .cl-dot[data-confidence="low"]    { background: #a1a1aa; }
+
+#cl-toast .cl-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+  color: #fafafa;
+  cursor: text;
+}
+
+#cl-toast .cl-ext {
+  flex: 0 0 auto;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+  color: #a1a1aa;
+}
+
+#cl-toast .cl-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 3px 6px;
+  border: 1px solid #52525b;
+  border-radius: 5px;
+  background: #09090b;
+  color: #fafafa;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+  outline: none;
+}
+
+#cl-toast .cl-input:focus { border-color: #818cf8; }
+
+#cl-toast .cl-meta {
+  display: block;
+  margin: 0 0 10px;
+  color: #a1a1aa;
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#cl-toast .cl-actions {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+#cl-toast .cl-btn {
+  padding: 5px 12px;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  background: transparent;
+  color: #e4e4e7;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#cl-toast .cl-btn:hover { background: #27272a; }
+
+#cl-toast .cl-primary {
+  border-color: transparent;
+  background: #6366f1;
+  color: #fff;
+}
+
+#cl-toast .cl-primary:hover { background: #4f46e5; }
+
+#cl-toast .cl-progress {
+  display: block;
+  height: 2px;
+  margin: 0 -16px;
+  background: #27272a;
+}
+
+#cl-toast .cl-progress i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #6366f1;
+  transform-origin: left center;
+  animation: cl-countdown linear forwards;
+}
+
+#cl-toast .cl-progress.cl-paused i {
+  width: 100%;
+  background: #3f3f46;
+}
+
+@keyframes cl-countdown {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #cl-toast .cl-progress i { animation: none; }
+}

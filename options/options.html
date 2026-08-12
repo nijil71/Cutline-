@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Cutline — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Cutline</h1>
+      <p class="sub">Screenshots named from what is actually on the page.</p>
+    </header>
+
+    <section>
+      <h2>Where files go</h2>
+      <p class="note">
+        Extensions may only write inside your Downloads folder, so every path
+        below is relative to it.
+      </p>
+
+      <label class="field">
+        <span>Base folder</span>
+        <input id="baseFolder" type="text" placeholder="Screenshots">
+      </label>
+
+      <label class="check">
+        <input id="useDateFolder" type="checkbox">
+        <span>Group into date folders</span>
+      </label>
+
+      <label class="field">
+        <span>Date folder format</span>
+        <select id="dateFolderFormat">
+          <option value="YYYY-MM">2026-08</option>
+          <option value="YYYY-MM-DD">2026-08-12</option>
+          <option value="YYYY/MM">2026 / 08</option>
+          <option value="YYYY">2026</option>
+        </select>
+      </label>
+    </section>
+
+    <section>
+      <h2>Naming</h2>
+
+      <label class="field">
+        <span>Words from the page title</span>
+        <input id="maxWords" type="number" min="1" max="12" step="1">
+      </label>
+
+      <label class="field">
+        <span>Maximum filename length</span>
+        <input id="maxNameLength" type="number" min="16" max="160" step="1">
+      </label>
+
+      <div class="preview">
+        <h3>Preview</h3>
+        <ul id="preview"></ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>After capture</h2>
+
+      <label class="check">
+        <input id="copyToClipboard" type="checkbox">
+        <span>Copy the image to the clipboard immediately</span>
+      </label>
+
+      <label class="check">
+        <input id="showToast" type="checkbox">
+        <span>Show the confirm-and-rename prompt before saving</span>
+      </label>
+
+      <label class="field">
+        <span>Seconds before it saves itself</span>
+        <input id="toastSeconds" type="number" min="1" max="30" step="1">
+      </label>
+
+      <p class="note">
+        The prompt is the moment the file is written, not a correction
+        afterwards — the browser offers no way to rename a completed download.
+        The image reaches your clipboard immediately either way.
+      </p>
+    </section>
+
+    <section>
+      <h2>Private sites</h2>
+      <p class="note">
+        One host glob or <code>/path</code> fragment per line. Matches always
+        save as a bare timestamp — the filename itself leaks, and
+        <code>amex-statement-balance-42000.png</code> in a screenshare is an
+        exposure a timestamp never was.
+      </p>
+      <textarea id="privateHosts" rows="9" spellcheck="false"></textarea>
+    </section>
+
+    <section>
+      <h2>Folder rules</h2>
+      <p class="note">
+        One rule per line, <code>host-glob =&gt; Folder</code>. Rules match on
+        host only — never on a guess about what the screenshot means, so a
+        misfile is always something you can point at and fix.
+      </p>
+      <textarea id="folderRules" rows="5" spellcheck="false"
+        placeholder="*.atlassian.net => Work&#10;*.amazon.* => Shopping"></textarea>
+    </section>
+
+    <section>
+      <h2>Keyboard shortcut</h2>
+      <p class="note">
+        <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> captures a region,
+        <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> the whole visible page.
+        Shortcuts only fire while the browser has focus.
+      </p>
+      <p class="note">
+        <strong>On Brave, rebind this.</strong> Brave reserves
+        <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> for its own screenshot
+        tool, and browser shortcuts win over extension ones — you will get
+        Brave's dialog instead of Cutline. <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
+        is free. The toolbar icon always works either way.
+      </p>
+      <button id="shortcuts" class="ghost" type="button">Change shortcuts</button>
+    </section>
+
+    <footer>
+      <button id="save" class="primary" type="button">Save</button>
+      <button id="reset" class="ghost" type="button">Reset to defaults</button>
+      <span id="status" role="status" aria-live="polite"></span>
+    </footer>
+  </main>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
