@@ -1,5 +1,6 @@
-bin/
-obj/
-*.user
-.vs/
+node_modules/
+dist/
 .claude/settings.local.json
+*.log
+Thumbs.db
+.DS_Store

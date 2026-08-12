@@ -1,24 +1,39 @@
 // Content script: the half of a capture that needs a DOM.
 //
 // Injected on demand by the service worker (classic script, not a module).
-// Responsibilities: draw the region overlay over a frozen screenshot, crop,
-// read page context, and run the confirm-and-rename toast.
+// Responsibilities: draw the region overlay over a frozen screenshot, run the
+// scroll-and-stitch full-page capture, read page context, and show the
+// confirm-and-rename toast.
 
 (() => {
   if (window.__cutlineLoaded) return;
   window.__cutlineLoaded = true;
 
-  const ID = {
-    overlay: 'cl-overlay',
-    toast: 'cl-toast',
-  };
+  const ID = { overlay: 'cl-overlay', toast: 'cl-toast' };
 
-  let session = null;   // { shot, settings, mode }
-  let teardown = null;  // cancels whatever UI is currently up
+  // Time to let a page repaint (and lazy images decode) after a programmatic
+  // scroll, before asking for the next frame.
+  const SETTLE_MS = 300;
+
+  // Device-pixel ceiling on a stitched full-page image. Chrome's hard canvas
+  // limits are far higher, but the resulting PNG has to survive a base64 trip
+  // through the message channel, and multi-hundred-megabyte strings do not.
+  const MAX_STITCH_PX = 20000;
+
+  // Backstop against pages that grow while being scrolled (infinite feeds).
+  const MAX_SEGMENTS = 60;
+
+  let teardown = null; // cancels whatever UI is currently up
 
   /* ------------------------------------------------------------- utilities */
 
   const text = (el) => (el && el.textContent ? el.textContent.trim() : '');
+
+  const doc = () => document.documentElement;
+
+  /** Viewport width excluding the classic scrollbar gutter. */
+  const contentWidth = () =>
+    Math.min(window.innerWidth, doc().clientWidth || window.innerWidth);
 
   function el(tag, className, parent) {
     const node = document.createElement(tag);
@@ -35,6 +50,11 @@
       img.src = src;
     });
   }
+
+  const settle = () =>
+    new Promise((resolve) => {
+      requestAnimationFrame(() => setTimeout(resolve, SETTLE_MS));
+    });
 
   /* --------------------------------------------------------- page context */
 
@@ -105,6 +125,31 @@
       },
     },
     {
+      test: (h) => /(^|\.)gitlab\./i.test(h),
+      run() {
+        const m = location.pathname.match(/\/-\/(issues|merge_requests)\/(\d+)/);
+        if (!m) return { scope: 'gitlab' };
+        return {
+          scope: 'gitlab',
+          trustedTicket: true,
+          ticket: `${m[1] === 'merge_requests' ? 'MR' : 'ISSUE'}-${m[2]}`,
+          subject: text(document.querySelector('h1.title, .issue-details h1')) || undefined,
+        };
+      },
+    },
+    {
+      test: (h) => /\.zendesk\.com$/i.test(h),
+      run() {
+        const m = location.pathname.match(/\/tickets\/(\d+)/);
+        return {
+          scope: 'zendesk',
+          trustedTicket: true,
+          ticket: m ? `TICKET-${m[1]}` : null,
+          subject: text(document.querySelector('[data-test-id="ticket-subject"], h1')) || undefined,
+        };
+      },
+    },
+    {
       test: (h) => /(^|\.)amazon\./i.test(h),
       run() {
         const raw = text(document.querySelector(
@@ -117,6 +162,27 @@
           price: digits || null,
         };
       },
+    },
+    {
+      test: (h) => h === 'stackoverflow.com' || /\.stackexchange\.com$/i.test(h),
+      run: () => ({
+        scope: 'stackoverflow',
+        subject: text(document.querySelector('#question-header h1, h1.fs-headline1')) || undefined,
+      }),
+    },
+    {
+      test: (h) => h === 'docs.google.com',
+      run: () => ({
+        scope: 'gdocs',
+        subject: text(document.querySelector('.docs-title-input-label-inner')) || undefined,
+      }),
+    },
+    {
+      test: (h) => /\.notion\.(so|site)$/i.test(h),
+      run: () => ({
+        scope: 'notion',
+        subject: text(document.querySelector('.notion-page-block [contenteditable], h1')) || undefined,
+      }),
     },
   ];
 
@@ -135,26 +201,32 @@
 
   function bodyTextSample() {
     try {
-      // Used only for exception/ticket detection, and only ever in-process.
-      return (document.body && document.body.innerText || '').slice(0, 20000);
+      // Used only for exception and issue-key detection, and only in-process.
+      return ((document.body && document.body.innerText) || '').slice(0, 20000);
     } catch {
       return '';
     }
   }
 
   function gatherContext() {
+    const adapter = runAdapter();
+    // innerText forces a full layout pass, which is measurable on heavy pages.
+    // When an adapter already produced an issue key, nothing downstream reads
+    // the body text, so skip it entirely.
+    const needsText = !(adapter && adapter.ticket);
+
     return {
       url: location.href,
       title: document.title,
       selection: String(window.getSelection() || '').trim().slice(0, 500),
       meta: metaTags(),
       jsonld: jsonLdNodes(),
-      adapter: runAdapter(),
-      text: bodyTextSample(),
+      adapter,
+      text: needsText ? bodyTextSample() : '',
     };
   }
 
-  /* ---------------------------------------------------------------- crop */
+  /* ------------------------------------------------------------------ crop */
 
   async function cropToDataUrl(shot, rectCss) {
     const img = await loadImage(shot);
@@ -176,6 +248,115 @@
     return canvas.toDataURL('image/png');
   }
 
+  /* ------------------------------------------------------- full page stitch */
+
+  /**
+   * Tag every fixed/sticky element so it can be hidden on later segments.
+   *
+   * `visibility: hidden` rather than `position: static`: hiding preserves
+   * layout, and any layout shift mid-capture would misalign every subsequent
+   * segment of the stitch.
+   */
+  function tagStickyElements() {
+    const tagged = [];
+    if (!document.body) return tagged;
+    const all = document.body.getElementsByTagName('*');
+    const limit = Math.min(all.length, 8000);
+    for (let i = 0; i < limit; i++) {
+      const node = all[i];
+      let position;
+      try {
+        position = getComputedStyle(node).position;
+      } catch {
+        continue;
+      }
+      if (position === 'fixed' || position === 'sticky') {
+        node.setAttribute('data-cl-fixed', '');
+        tagged.push(node);
+      }
+    }
+    return tagged;
+  }
+
+  async function grabVisible() {
+    const res = await chrome.runtime.sendMessage({ k: 'cutline:grab' });
+    if (!res || !res.ok) throw new Error((res && res.error) || 'capture refused');
+    return res.shot;
+  }
+
+  const reportProgress = (done, total) => {
+    chrome.runtime.sendMessage({ k: 'cutline:progress', done, total }).catch(() => {});
+  };
+
+  async function captureFullPage() {
+    const root = doc();
+    const viewportH = window.innerHeight;
+    const startX = window.scrollX;
+    const startY = window.scrollY;
+
+    const totalH = Math.max(
+      root.scrollHeight,
+      document.body ? document.body.scrollHeight : 0,
+      viewportH,
+    );
+
+    const sticky = tagStickyElements();
+    root.classList.add('cl-capturing');
+
+    try {
+      window.scrollTo(0, 0);
+      await settle();
+
+      let img = await loadImage(await grabVisible());
+      const scale = img.naturalWidth / window.innerWidth;
+      const width = Math.max(1, Math.round(contentWidth() * scale));
+
+      const wanted = Math.round(totalH * scale);
+      const height = Math.min(wanted, MAX_STITCH_PX);
+      const truncated = height < wanted;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx2d = canvas.getContext('2d');
+
+      const total = Math.min(Math.ceil(totalH / viewportH), MAX_SEGMENTS);
+
+      for (let i = 0; i < MAX_SEGMENTS; i++) {
+        if (i > 0) {
+          window.scrollTo(0, i * viewportH);
+          await settle();
+          // Only from the second frame on: a sticky header should appear once,
+          // at the top, not repeated every viewport down the image.
+          root.classList.add('cl-hide-fixed');
+          img = await loadImage(await grabVisible());
+        }
+
+        // Read the *actual* offset — the final scroll clamps short, and using
+        // the requested value instead would duplicate a slice of the page.
+        const offsetY = Math.round(window.scrollY * scale);
+        const drawH = Math.min(img.naturalHeight, height - offsetY);
+        if (drawH > 0) {
+          ctx2d.drawImage(img, 0, 0, width, drawH, 0, offsetY, width, drawH);
+        }
+
+        reportProgress(i + 1, total);
+
+        const atBottom = window.scrollY + viewportH >= totalH - 1;
+        if (atBottom || offsetY + img.naturalHeight >= height) break;
+      }
+
+      return { png: canvas.toDataURL('image/png'), truncated };
+    } finally {
+      root.classList.remove('cl-capturing', 'cl-hide-fixed');
+      for (const node of sticky) node.removeAttribute('data-cl-fixed');
+      window.scrollTo(startX, startY);
+      reportProgress(0, 0);
+    }
+  }
+
+  /* ------------------------------------------------------------- clipboard */
+
   async function copyToClipboard(dataUrl) {
     try {
       const blob = await (await fetch(dataUrl)).blob();
@@ -187,7 +368,7 @@
     }
   }
 
-  /* ------------------------------------------------------------- overlay */
+  /* --------------------------------------------------------------- overlay */
 
   function showRegionOverlay(shot) {
     return new Promise((resolve) => {
@@ -263,12 +444,22 @@
         finish(done);
       };
 
+      // The frozen image would not move with the page, so scrolling underneath
+      // it is purely disorienting. Block it for as long as the overlay is up.
+      const blockScroll = (e) => e.preventDefault();
+      const SCROLL_KEYS = new Set([
+        'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+        'PageUp', 'PageDown', 'Home', 'End', ' ',
+      ]);
+
       const onKey = (e) => {
-        if (e.key === 'Escape') { e.preventDefault(); finish(null); }
-        else if (e.key === 'Enter') {
+        if (e.key === 'Escape') { e.preventDefault(); finish(null); return; }
+        if (e.key === 'Enter') {
           e.preventDefault();
-          finish({ x: 0, y: 0, w: window.innerWidth, h: window.innerHeight });
+          finish({ x: 0, y: 0, w: contentWidth(), h: window.innerHeight });
+          return;
         }
+        if (SCROLL_KEYS.has(e.key)) e.preventDefault();
       };
 
       function close() {
@@ -276,6 +467,8 @@
         window.removeEventListener('pointermove', onMove, true);
         window.removeEventListener('pointerup', onUp, true);
         window.removeEventListener('keydown', onKey, true);
+        window.removeEventListener('wheel', blockScroll, true);
+        window.removeEventListener('touchmove', blockScroll, true);
         root.remove();
         if (teardown === close) teardown = null;
       }
@@ -284,11 +477,13 @@
       window.addEventListener('pointermove', onMove, true);
       window.addEventListener('pointerup', onUp, true);
       window.addEventListener('keydown', onKey, true);
+      window.addEventListener('wheel', blockScroll, { passive: false, capture: true });
+      window.addEventListener('touchmove', blockScroll, { passive: false, capture: true });
       teardown = close;
     });
   }
 
-  /* --------------------------------------------------------------- toast */
+  /* ----------------------------------------------------------------- toast */
 
   /**
    * The toast is the commit step, not an after-the-fact correction.
@@ -297,7 +492,7 @@
    * not implementable. Holding the write for a few seconds costs nothing (the
    * image is already on the clipboard) and makes a wrong name free to fix.
    */
-  function showToast(proposal, settings) {
+  function showToast(proposal, settings, note) {
     return new Promise((resolve) => {
       const seconds = Math.max(1, Number(settings.toastSeconds) || 4);
 
@@ -315,7 +510,8 @@
       el('span', 'cl-ext', row).textContent = '.png';
 
       const meta = el('div', 'cl-meta', root);
-      meta.textContent = `${proposal.folder || 'Downloads'}  ·  ${proposal.reason}`;
+      meta.textContent = [proposal.folder || 'Downloads', proposal.reason, note]
+        .filter(Boolean).join('  ·  ');
 
       const actions = el('div', 'cl-actions', root);
       const saveBtn = el('button', 'cl-btn cl-primary', actions);
@@ -330,25 +526,40 @@
       fill.style.animationDuration = `${seconds}s`;
 
       let current = proposal.base;
-      let timer = null;
       let input = null;
+      let timer = null;
+      let remaining = seconds * 1000;
+      let startedAt = 0;
 
-      const settle = (value) => { close(); resolve(value); };
-      const commit = () => settle(input ? input.value.trim() || current : current);
+      const settleWith = (value) => { close(); resolve(value); };
+      const commit = () => settleWith(input ? (input.value.trim() || current) : current);
 
       const startTimer = () => {
-        timer = setTimeout(commit, seconds * 1000);
+        if (timer || remaining <= 0) return;
+        startedAt = Date.now();
+        timer = setTimeout(commit, remaining);
+        fill.style.animationPlayState = 'running';
       };
-      const stopTimer = () => {
-        if (timer) clearTimeout(timer);
+
+      // Pause keeps the remaining time so leaving the toast resumes where it
+      // stopped. An earlier version cleared the timer outright, which meant a
+      // stray mouseover silently cancelled the save forever.
+      const pauseTimer = () => {
+        if (!timer) return;
+        clearTimeout(timer);
         timer = null;
-        fill.style.animation = 'none';
-        bar.classList.add('cl-paused');
+        remaining = Math.max(0, remaining - (Date.now() - startedAt));
+        fill.style.animationPlayState = 'paused';
+      };
+
+      const cancelTimer = () => {
+        pauseTimer();
+        remaining = 0; // editing means the user is in charge now
       };
 
       const beginEdit = () => {
         if (input) { input.focus(); return; }
-        stopTimer();
+        cancelTimer();
         input = el('input', 'cl-input');
         input.type = 'text';
         input.value = current;
@@ -359,16 +570,17 @@
         input.addEventListener('keydown', (e) => {
           e.stopPropagation();
           if (e.key === 'Enter') { e.preventDefault(); commit(); }
-          else if (e.key === 'Escape') { e.preventDefault(); settle(null); }
+          else if (e.key === 'Escape') { e.preventDefault(); settleWith(null); }
         });
       };
 
       const onKey = (e) => {
-        if (e.key === 'Escape') { e.preventDefault(); settle(null); }
+        if (e.key === 'Escape') { e.preventDefault(); settleWith(null); }
       };
 
       function close() {
-        stopTimer();
+        if (timer) clearTimeout(timer);
+        timer = null;
         window.removeEventListener('keydown', onKey, true);
         root.remove();
         if (teardown === close) teardown = null;
@@ -377,10 +589,9 @@
       nameEl.addEventListener('click', beginEdit);
       renameBtn.addEventListener('click', beginEdit);
       saveBtn.addEventListener('click', commit);
-      discardBtn.addEventListener('click', () => settle(null));
-      // Hovering means the user is reading it; do not yank the file out from
-      // under them mid-decision.
-      root.addEventListener('pointerenter', stopTimer);
+      discardBtn.addEventListener('click', () => settleWith(null));
+      root.addEventListener('pointerenter', pauseTimer);
+      root.addEventListener('pointerleave', () => { if (!input) startTimer(); });
       window.addEventListener('keydown', onKey, true);
 
       teardown = close;
@@ -389,48 +600,54 @@
   }
 
   function flash(message, isError = true) {
+    const existing = document.getElementById(ID.toast);
+    if (existing) existing.remove();
     const node = el('div', null, document.documentElement);
     node.id = ID.toast;
     node.classList.add(isError ? 'cl-error' : 'cl-ok');
     node.textContent = message;
-    setTimeout(() => node.remove(), 4000);
+    setTimeout(() => node.remove(), 4500);
   }
 
-  /* ------------------------------------------------------------ the flow */
+  /* -------------------------------------------------------------- the flow */
+
+  async function produceImage(mode, shot) {
+    if (mode === 'fullpage') return captureFullPage();
+
+    const rect = mode === 'viewport'
+      ? { x: 0, y: 0, w: contentWidth(), h: window.innerHeight }
+      : await showRegionOverlay(shot);
+
+    if (!rect) return null; // cancelled
+    return { png: await cropToDataUrl(shot, rect), truncated: false };
+  }
 
   async function begin({ mode, shot, settings }) {
     if (teardown) teardown();
-    session = { shot, settings, mode };
 
-    let rect;
-    if (mode === 'viewport') {
-      rect = { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight };
-    } else {
-      rect = await showRegionOverlay(shot);
-      if (!rect) return; // cancelled
-    }
-
-    let png;
+    let result;
     try {
-      png = await cropToDataUrl(shot, rect);
+      result = await produceImage(mode, shot);
     } catch (err) {
-      flash(`Cutline could not crop the capture: ${err.message}`);
+      flash(`Cutline could not capture this page: ${err.message}`);
       return;
     }
+    if (!result) return;
 
+    const { png, truncated } = result;
     if (settings.copyToClipboard) copyToClipboard(png);
 
-    const ctx = gatherContext();
-    const res = await chrome.runtime.sendMessage({ k: 'cutline:propose', ctx });
+    const res = await chrome.runtime.sendMessage({ k: 'cutline:propose', ctx: gatherContext() });
     if (!res || !res.ok) {
       flash(`Cutline could not build a name: ${(res && res.error) || 'unknown error'}`);
       return;
     }
     const proposal = res.proposal;
+    const note = truncated ? 'page too tall — image was cut short' : '';
 
     let base = proposal.base;
     if (settings.showToast) {
-      base = await showToast(proposal, settings);
+      base = await showToast(proposal, settings, note);
       if (base == null) return; // discarded
     }
 

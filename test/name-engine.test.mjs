@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { slug, joinSlug, dateFolder, timestampSlug } from '../src/naming/slug.js';
 import { stripTitleNoise, pickSegment, subjectWords } from '../src/naming/title-clean.js';
 import {
-  findTicket, findPrice, findError, findHttpStatus, normalizePrice,
+  findTicket, findPrice, findError, findHttpStatus, normalizePrice, priceValue,
 } from '../src/naming/extractors.js';
 import {
   buildName, scopeFromUrl, isPrivate, folderFor, productFromJsonLd,
@@ -125,10 +125,33 @@ test('findError: distinctive package segment plus camel-split class', () => {
   assert.equal(findError('everything is fine'), null);
 });
 
-test('findHttpStatus', () => {
+test('findError: whole-page text needs failure context, a selection does not', () => {
+  const prose = 'This guide explains what a TypeError means in JavaScript.';
+  // Mentioned in passing on a docs page — must not name the screenshot.
+  assert.equal(findError(prose, { requireContext: true }), null);
+  // Same words, deliberately selected by the user — that is the signal.
+  assert.deepEqual(findError(prose), ['type']);
+
+  const reported = 'Uncaught TypeError: cannot read properties of null';
+  assert.deepEqual(findError(reported, { requireContext: true }), ['type']);
+
+  const trace = 'Exception in thread "main"\n    at com.acme.billing.ChargeFailedException';
+  assert.deepEqual(findError(trace, { requireContext: true }), ['billing', 'charge', 'failed']);
+});
+
+test('findHttpStatus: needs a label or a real reason phrase', () => {
   assert.equal(findHttpStatus('404 Not Found'), '404');
   assert.equal(findHttpStatus('HTTP 500 Internal Server Error'), '500');
+  assert.equal(findHttpStatus('status: 403'), '403');
   assert.equal(findHttpStatus('costs 500 dollars'), null);
+  // A bare number followed by a capitalised word is not an outage.
+  assert.equal(findHttpStatus('There are 500 Results'), null);
+});
+
+test('priceValue: numeric reading used to reject junk', () => {
+  assert.equal(priceValue('₹79,999'), 79999);
+  assert.equal(priceValue('0'), 0);
+  assert.ok(Number.isNaN(priceValue(null)));
 });
 
 /* ------------------------------------------------------------------- scope */
@@ -257,6 +280,28 @@ test('buildName: a price on a non-commerce page is ignored', () => {
 
   assert.ok(!out.base.includes('12000'), `unexpected price in ${out.base}`);
   assert.equal(out.base, 'example-why-we-moved-kubernetes'); // "off" is filler
+});
+
+test('buildName: an exception merely discussed on a docs page is ignored', () => {
+  const out = buildName({
+    url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/TypeError',
+    title: 'TypeError - JavaScript | MDN',
+    text: 'The TypeError object represents an error when an operation could not be performed.',
+  }, DEFAULTS, NOW);
+
+  assert.ok(!out.base.endsWith('-error'), `wrongly treated as an error: ${out.base}`);
+  assert.equal(out.base, 'mozilla-typeerror');
+});
+
+test('buildName: a free listing does not get a -0 suffix', () => {
+  const out = buildName({
+    url: 'https://shop.example.com/p/sticker-pack',
+    title: 'Developer Sticker Pack',
+    jsonld: [{ '@type': 'Product', name: 'Developer Sticker Pack', offers: { price: '0' } }],
+  }, DEFAULTS, NOW);
+
+  assert.ok(!/-0$/.test(out.base), `zero price leaked into ${out.base}`);
+  assert.equal(out.base, 'example-Developer-Sticker-Pack'.toLowerCase());
 });
 
 test('buildName: thin title falls back to a timestamp rather than guessing', () => {

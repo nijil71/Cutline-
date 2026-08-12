@@ -225,6 +225,9 @@
   background: #27272a;
 }
 
+/* Starts paused; the script sets animation-play-state to run it, and pauses it
+   again on hover. Toggling play state (rather than clearing the animation)
+   keeps the bar frozen where it is instead of snapping back to full. */
 #cl-toast .cl-progress i {
   display: block;
   height: 100%;
@@ -232,11 +235,7 @@
   background: #6366f1;
   transform-origin: left center;
   animation: cl-countdown linear forwards;
-}
-
-#cl-toast .cl-progress.cl-paused i {
-  width: 100%;
-  background: #3f3f46;
+  animation-play-state: paused;
 }
 
 @keyframes cl-countdown {
@@ -246,4 +245,19 @@
 
 @media (prefers-reduced-motion: reduce) {
   #cl-toast .cl-progress i { animation: none; }
+}
+
+/* ------------------------------------------------- full-page capture state */
+
+/* Smooth scrolling turns each programmatic jump into an animation, and the
+   frame would be grabbed mid-glide. */
+html.cl-capturing {
+  scroll-behavior: auto !important;
+}
+
+/* Applied from the second segment onward. `visibility` rather than `display`
+   or `position`, because hiding must not reflow the page — any layout shift
+   mid-capture misaligns every segment that follows. */
+html.cl-hide-fixed [data-cl-fixed] {
+  visibility: hidden !important;
 }

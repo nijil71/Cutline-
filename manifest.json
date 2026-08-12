@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Cutline",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Screenshots named from the page they came from — the product, ticket, or error — instead of a timestamp.",
   "minimum_chrome_version": "116",
 
@@ -47,6 +47,10 @@
     "capture-viewport": {
       "suggested_key": { "default": "Ctrl+Shift+E", "mac": "Command+Shift+E" },
       "description": "Capture the whole visible page"
+    },
+    "capture-fullpage": {
+      "suggested_key": { "default": "Ctrl+Shift+F", "mac": "Command+Shift+F" },
+      "description": "Capture the full scrolling page"
     }
   }
 }

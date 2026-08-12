@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="shots.css">
+<style>
+  body.promo .stage { padding: 30px 32px; justify-content: center; }
+  body.promo .stage::before {
+    background: radial-gradient(420px 260px at 84% -20%, rgba(99, 102, 241, 0.26), transparent 70%);
+  }
+  .brand { margin-bottom: 18px; }
+  .mark { width: 26px; height: 26px; border-radius: 7px; }
+  .mark i { width: 6px; height: 6px; border-width: 2px; }
+  .mark i:nth-child(1) { top: 6px; left: 6px; }
+  .mark i:nth-child(2) { top: 6px; right: 6px; }
+  .mark i:nth-child(3) { bottom: 6px; right: 6px; }
+  .mark i:nth-child(4) { bottom: 6px; left: 6px; }
+  .brand b { font-size: 17px; }
+
+  h1 { font-size: 25px; line-height: 1.2; max-width: 16ch; }
+
+  .example {
+    margin-top: 18px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .example b { color: var(--accent); font-weight: 400; }
+  .example u { text-decoration: none; color: var(--green); }
+</style>
+</head>
+<body class="promo">
+  <div class="stage">
+    <div class="brand">
+      <div class="mark"><i></i><i></i><i></i><i></i></div>
+      <b>Cutline</b>
+    </div>
+    <h1>Screenshots that name themselves.</h1>
+    <div class="example"><b>jira</b>-<u>Q-413488</u>-payment-gateway-timeout.png</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="shots.css">
+<style>
+  .stage { padding: 56px 64px 58px; }
+  .brand { margin-bottom: 28px; }
+  h1 { font-size: 38px; max-width: 22ch; }
+
+  .claims { margin-top: 36px; display: flex; gap: 14px; }
+  .claim {
+    flex: 1;
+    padding: 20px 20px 22px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: var(--panel);
+  }
+  .claim .tick { color: var(--green); font-size: 17px; line-height: 1; }
+  .claim b { display: block; margin-top: 12px; font-size: 15.5px; font-weight: 600; }
+  /* Direct child only — a nested <span class="mono"> would otherwise inherit
+     display:block and break the sentence across three lines. */
+  .claim > span { display: block; margin-top: 7px; font-size: 13px; line-height: 1.55; color: var(--muted); }
+  .claim .mono { font-size: 12.5px; color: var(--text); }
+
+  .body { margin: auto 0; }
+
+  .redact {
+    margin-top: 30px;
+    padding: 22px 24px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: var(--panel-2);
+  }
+  .redact .label {
+    font-size: 11.5px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--dim); margin-bottom: 14px;
+  }
+  .line { display: flex; align-items: center; gap: 14px; font-family: var(--mono); font-size: 16px; }
+  .line + .line { margin-top: 11px; }
+  .line .tag {
+    flex: 0 0 128px; font-family: var(--sans); font-size: 12px;
+    color: var(--dim); text-align: right;
+  }
+  .bad { color: var(--red); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+  .good { color: var(--text); }
+  .note { margin-top: 15px; font-size: 13px; color: var(--muted); line-height: 1.55; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="brand">
+      <div class="mark"><i></i><i></i><i></i><i></i></div>
+      <b>Cutline</b>
+    </div>
+
+    <h1>No host permissions.<br>No network. No account.</h1>
+
+    <div class="body">
+    <div class="claims">
+      <div class="claim">
+        <div class="tick">●</div>
+        <b>Cannot read your browsing</b>
+        <span>Uses <span class="mono">activeTab</span>, so a page is readable only in the moment you capture it. Never in the background, never another tab.</span>
+      </div>
+      <div class="claim">
+        <div class="tick">●</div>
+        <b>Sends nothing anywhere</b>
+        <span>Zero network requests. No analytics, no crash reporting, no remote code. There is no server to send to.</span>
+      </div>
+      <div class="claim">
+        <div class="tick">●</div>
+        <b>Open source, MIT</b>
+        <span>Every line that ships is readable. The naming engine is covered by its own test suite.</span>
+      </div>
+    </div>
+
+    <div class="redact">
+      <div class="label">Filenames leak too — so on sensitive pages, it says nothing</div>
+      <div class="line">
+        <span class="tag">Never written</span>
+        <span class="bad">bank-statement-balance-420000.png</span>
+      </div>
+      <div class="line">
+        <span class="tag">Saved instead</span>
+        <span class="good">screenshot-2026-08-12-010451.png</span>
+      </div>
+      <div class="note">
+        Banking hosts, password managers and any <span class="mono">/login</span>,
+        <span class="mono">/checkout</span> or <span class="mono">/password</span> address are
+        excluded by default. Incognito windows always are. The list is yours to edit.
+      </div>
+    </div>
+    </div>
+
+    <div class="foot">Region · visible page · full scrolling page — all named the same way.</div>
+  </div>
+</body>
+</html>

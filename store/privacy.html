@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cutline — Privacy Policy</title>
+<style>
+  :root {
+    --bg: #ffffff; --panel: #fafafa; --border: #e4e4e7;
+    --text: #18181b; --muted: #6b6b74; --accent: #4f46e5; --code: #f4f4f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131316; --panel: #19191d; --border: #2a2a30;
+      --text: #f4f4f5; --muted: #a1a1aa; --accent: #a5b4fc; --code: #232329;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 48px 20px 96px; background: var(--bg); color: var(--text);
+    font: 16px/1.65 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  h2 { font-size: 19px; letter-spacing: -0.01em; margin: 40px 0 12px; }
+  .meta { color: var(--muted); font-size: 14px; margin: 0 0 8px; }
+  .lede {
+    margin: 28px 0 0; padding: 18px 20px; border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 8px; background: var(--panel);
+  }
+  code {
+    padding: 1px 5px; border-radius: 4px; background: var(--code);
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.88em;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+  ul { padding-left: 22px; }
+  li { margin: 6px 0; }
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+  .wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cutline — Privacy Policy</h1>
+  <p class="meta">Effective 12 August 2026 · Applies to the Cutline browser extension, version 1.0.0</p>
+
+  <p class="lede">
+    <strong>Cutline collects nothing and transmits nothing.</strong> It makes no
+    network requests of any kind. Everything it reads is used on your own
+    machine, in the moment you take a screenshot, to decide what to call the
+    resulting file — and is then discarded.
+  </p>
+
+  <h2>What Cutline reads, and when</h2>
+  <p>
+    Cutline reads a page <em>only</em> at the moment you invoke a capture on it —
+    by pressing its keyboard shortcut or clicking its toolbar icon. It has no
+    ability to read pages in the background, read other tabs, or read anything
+    while you are not actively capturing. This is enforced by the browser: the
+    extension requests the <code>activeTab</code> permission rather than
+    permission to access websites.
+  </p>
+
+  <div class="wrap">
+  <table>
+    <thead><tr><th>Read at capture time</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>An image of the visible tab</td><td>It is the screenshot.</td></tr>
+      <tr><td>Page address and title</td><td>Supplies the site name and subject words in the filename.</td></tr>
+      <tr><td>Your current text selection</td><td>A selected error message becomes the filename.</td></tr>
+      <tr><td><code>schema.org</code> / <code>meta</code> markup</td><td>Gives the exact product name and price a shopping page declares.</td></tr>
+      <tr><td>Up to 20,000 characters of visible page text</td><td>Locates an issue key or exception name. Skipped entirely when the page address already supplies one.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>
+    All of this is processed inside the extension, in memory, and released as
+    soon as the filename has been built. None of it is written to disk, logged,
+    or sent anywhere.
+  </p>
+
+  <h2>What Cutline stores</h2>
+  <p>
+    Only your own settings — base folder, date-folder format, naming limits,
+    the private-sites list and any folder rules you create. These are saved with
+    the browser's own extension settings storage.
+  </p>
+  <p>
+    If you have browser sync switched on in your browser account, the browser
+    may sync those settings across your own devices, in the same way it syncs
+    your bookmarks. That is handled entirely by your browser and its vendor.
+    <strong>Cutline operates no server and receives none of it.</strong>
+  </p>
+
+  <h2>What Cutline writes</h2>
+  <ul>
+    <li>A PNG file into your browser's Downloads folder, under the sub-folder you configure.</li>
+    <li>The same image onto your clipboard, if you leave that option enabled.</li>
+  </ul>
+  <p>Nothing else on your system is written or modified.</p>
+
+  <h2>Filenames and sensitive pages</h2>
+  <p>
+    Because Cutline puts page content into filenames, the filename itself can
+    reveal something — a name like
+    <code>bank-statement-balance-42000.png</code> is visible in a screen share
+    or a file picker in a way that a plain timestamp is not.
+  </p>
+  <p>
+    Cutline therefore ships with a default list of sensitive contexts — banking
+    hosts, password managers, and any address containing <code>/login</code>,
+    <code>/checkout</code> or <code>/password</code> — where it deliberately
+    ignores all page content and saves a bare timestamp instead. Captures taken
+    in an incognito window are always saved as a bare timestamp. You can edit
+    this list on the extension's options page.
+  </p>
+
+  <h2>Permissions</h2>
+  <div class="wrap">
+  <table>
+    <thead><tr><th>Permission</th><th>What it is for</th></tr></thead>
+    <tbody>
+      <tr><td><code>activeTab</code></td><td>Read and photograph the current tab, only when you invoke a capture.</td></tr>
+      <tr><td><code>scripting</code></td><td>Place the selection overlay and rename prompt on the page.</td></tr>
+      <tr><td><code>downloads</code></td><td>Save the finished PNG to your Downloads folder.</td></tr>
+      <tr><td><code>storage</code></td><td>Remember your settings.</td></tr>
+      <tr><td><code>clipboardWrite</code></td><td>Put the captured image on your clipboard.</td></tr>
+      <tr><td><code>notifications</code></td><td>Tell you when a capture cannot proceed, for example on a browser internal page.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>
+    Cutline requests <strong>no host permissions</strong>, so it never appears
+    with the "read your data on all websites" warning, and cannot.
+  </p>
+
+  <h2>Third parties</h2>
+  <p>
+    There are none. No analytics, no crash reporting, no advertising, no
+    external fonts or scripts, no remote code. Cutline does not sell, share, or
+    transfer any data, because it never obtains any.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    Cutline is a general-purpose utility and does not knowingly collect
+    information from anyone, of any age.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    If a future version changes what Cutline reads or stores, this page will be
+    updated and the effective date above revised before that version is
+    published.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions about this policy:
+    <strong>&lt;&lt;&lt; nmnijilkhan@gmail.com &gt;&gt;&gt;</strong>
+  </p>
+
+  <footer>
+    Cutline is open source under the MIT License. The complete source of the
+    published extension is available for inspection.
+  </footer>
+</main>
+</body>
+</html>

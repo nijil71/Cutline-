@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="shots.css">
+<style>
+  h1 { font-size: 50px; }
+  /* Auto margins centre the block in the space between brand and footer,
+     rather than leaving a third of the panel empty at the bottom. */
+  .compare { margin: auto 0; display: flex; flex-direction: column; gap: 38px; }
+
+  .label {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 14px;
+  }
+
+  .before {
+    font-family: var(--mono);
+    font-size: 25px;
+    color: var(--dim);
+    text-decoration: line-through;
+    text-decoration-color: rgba(248, 113, 113, 0.55);
+    text-decoration-thickness: 2px;
+  }
+
+  .after { display: flex; flex-direction: column; gap: 13px; }
+
+  .after div {
+    font-family: var(--mono);
+    font-size: 25px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .after b { color: var(--accent); font-weight: 400; }
+  .after u { text-decoration: none; color: var(--green); }
+
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); flex: none;
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="brand">
+      <div class="mark"><i></i><i></i><i></i><i></i></div>
+      <b>Cutline</b><span>for Chrome</span>
+    </div>
+
+    <h1>Your screenshots already know <em>what they are.</em></h1>
+
+    <div class="compare">
+      <div>
+        <div class="label">What you get today</div>
+        <div class="before">Screenshot 2026-08-12 01-04-51.png</div>
+      </div>
+
+      <div>
+        <div class="label">What Cutline saves</div>
+        <div class="after">
+          <div><span class="dot"></span><b>amazon</b>-lenovo-legion-5i-gen-9-<u>79999</u>.png</div>
+          <div><span class="dot"></span><b>jira</b>-<u>Q-413488</u>-payment-gateway-timeout.png</div>
+          <div><span class="dot"></span><b>mendix</b>-bouncycastle-invalid-cipher-text-<u>error</u>.png</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <span class="pill">Region</span>
+      <span class="pill">Visible page</span>
+      <span class="pill">Full scrolling page</span>
+      <span style="margin-left:14px">Named from the page itself — no OCR, no guessing, no account.</span>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="shots.css">
+<style>
+  .stage { padding: 46px 56px 52px; }
+  .brand { margin-bottom: 24px; }
+  h1 { font-size: 34px; max-width: 26ch; }
+
+  /* Mock browser window ------------------------------------------------ */
+  .browser {
+    position: relative;
+    margin-top: 26px;
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #101014;
+    overflow: hidden;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  }
+
+  .chrome {
+    height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .light { width: 10px; height: 10px; border-radius: 50%; background: #3a3a43; }
+  .omnibox {
+    margin-left: 12px;
+    flex: 1;
+    height: 24px;
+    border-radius: 6px;
+    background: #0d0d10;
+    border: 1px solid #26262c;
+    display: flex;
+    align-items: center;
+    padding: 0 11px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--dim);
+  }
+
+  .page { position: relative; height: calc(100% - 42px); padding: 28px 32px; }
+
+  .product { display: flex; gap: 26px; }
+  .thumb {
+    width: 168px; height: 122px; border-radius: 9px; flex: none;
+    background: linear-gradient(145deg, #24242c, #16161b);
+    border: 1px solid var(--border);
+  }
+  .product h2 { font-size: 20px; font-weight: 600; line-height: 1.35; max-width: 30ch; }
+  .price { margin-top: 12px; font-size: 26px; font-weight: 600; color: var(--text); }
+  .price s { font-size: 15px; font-weight: 400; color: var(--dim); margin-left: 10px; }
+  .rows { margin-top: 22px; display: flex; flex-direction: column; gap: 9px; }
+  .rows i { display: block; height: 8px; border-radius: 4px; background: #1d1d23; }
+
+  /* Selection remnant, so the shot reads as "mid-capture". */
+  .marquee {
+    position: absolute;
+    left: 20px; top: 16px; width: 508px; height: 182px;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 3000px rgba(0, 0, 0, 0.58);
+    border-radius: 2px;
+  }
+
+  .section { margin-top: 30px; }
+  .section h3 {
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px;
+  }
+  .specs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .spec {
+    padding: 14px 16px; border: 1px solid var(--border);
+    border-radius: 8px; background: #15151a;
+  }
+  .spec b { display: block; font-size: 12px; color: var(--dim); font-weight: 500; }
+  .spec span { display: block; margin-top: 6px; font-size: 14px; color: #d8d8de; }
+  .para { margin-top: 26px; display: flex; flex-direction: column; gap: 9px; }
+  .para i { display: block; height: 8px; border-radius: 4px; background: #1b1b21; }
+  .dims {
+    position: absolute;
+    left: 22px; top: -8px;
+    padding: 3px 8px; border-radius: 5px;
+    background: rgba(17, 17, 20, 0.94);
+    font-size: 11px; font-family: var(--mono); color: #e9e9ee;
+  }
+
+  /* The real toast, reproduced from the extension stylesheet. */
+  .toast {
+    position: absolute;
+    right: 20px; bottom: 20px;
+    width: 372px;
+    padding: 14px 16px 0;
+    border-radius: 12px;
+    background: rgba(17, 17, 20, 0.98);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    font-size: 13px;
+    overflow: hidden;
+  }
+  .toast .r { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .toast .c { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
+  .toast .n { font-family: var(--mono); font-size: 13px; color: #fafafa; white-space: nowrap; }
+  .toast .x { font-family: var(--mono); font-size: 13px; color: #a1a1aa; }
+  .toast .m { color: #a1a1aa; font-size: 11.5px; margin-bottom: 10px; }
+  .toast .b { display: flex; gap: 8px; margin-bottom: 12px; }
+  .toast button {
+    padding: 5px 12px; border-radius: 6px; font-size: 12px;
+    border: 1px solid #3f3f46; background: transparent; color: #e4e4e7;
+    font-family: var(--sans);
+  }
+  .toast button.p { border-color: transparent; background: #6366f1; color: #fff; }
+  .toast .bar { height: 2px; margin: 0 -16px; background: #27272a; }
+  .toast .bar i { display: block; height: 100%; width: 62%; background: #6366f1; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="brand">
+      <div class="mark"><i></i><i></i><i></i><i></i></div>
+      <b>Cutline</b>
+    </div>
+
+    <h1>Drag a region. It writes the name.</h1>
+
+    <div class="browser">
+      <div class="chrome">
+        <div class="light"></div><div class="light"></div><div class="light"></div>
+        <div class="omnibox">amazon.in/dp/B0D1234</div>
+      </div>
+
+      <div class="page">
+        <div class="product">
+          <div class="thumb"></div>
+          <div>
+            <h2>Lenovo Legion 5i Gen 9 16IRX9 Gaming Laptop</h2>
+            <div class="price">₹79,999<s>₹1,04,990</s></div>
+            <div class="rows"><i style="width:300px"></i><i style="width:250px"></i><i style="width:280px"></i></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Technical details</h3>
+          <div class="specs">
+            <div class="spec"><b>Processor</b><span>Intel Core i7-14650HX</span></div>
+            <div class="spec"><b>Graphics</b><span>NVIDIA RTX 4060 8GB</span></div>
+            <div class="spec"><b>Display</b><span>16" WQXGA 165Hz</span></div>
+          </div>
+          <div class="para">
+            <i style="width:96%"></i><i style="width:91%"></i><i style="width:94%"></i><i style="width:62%"></i>
+          </div>
+        </div>
+
+        <div class="marquee"><div class="dims">508 x 182</div></div>
+
+        <div class="toast">
+          <div class="r">
+            <span class="c"></span>
+            <span class="n">amazon-lenovo-legion-5i-gen-9-79999</span>
+            <span class="x">.png</span>
+          </div>
+          <div class="m">Screenshots/2026-08  ·  product price 79999</div>
+          <div class="b">
+            <button class="p">Save</button><button>Rename</button><button>Discard</button>
+          </div>
+          <div class="bar"><i></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

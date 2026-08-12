@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="shots.css">
+<style>
+  .stage { padding: 52px 64px 56px; }
+  .brand { margin-bottom: 26px; }
+  h1 { font-size: 38px; max-width: 40ch; }
+
+  .grid { margin: auto 0; display: flex; flex-direction: column; gap: 13px; }
+
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 17px 22px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+  }
+
+  .what { flex: 0 0 232px; }
+  .what b { display: block; font-size: 15px; font-weight: 600; }
+  .what span { display: block; font-size: 12.5px; color: var(--dim); margin-top: 2px; }
+
+  .arrow { color: #3f3f4a; font-size: 17px; flex: none; }
+
+  .out {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .out b { color: var(--accent); font-weight: 400; }
+  .out u { text-decoration: none; color: var(--green); }
+
+  .card.reject { background: transparent; border-style: dashed; }
+  .card.reject .out { color: var(--dim); font-family: var(--sans); font-size: 14px; }
+  .card.reject .what b { color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="brand">
+      <div class="mark"><i></i><i></i><i></i><i></i></div>
+      <b>Cutline</b>
+    </div>
+
+    <h1>It reads the page, not the pixels.</h1>
+
+    <div class="grid">
+      <div class="card">
+        <div class="what"><b>Issue key</b><span>Jira · Linear · GitHub · GitLab</span></div>
+        <div class="arrow">→</div>
+        <div class="out"><b>jira</b>-<u>Q-413488</u>-payment-gateway-timeout</div>
+      </div>
+
+      <div class="card">
+        <div class="what"><b>Exception</b><span>your selection or a stack trace</span></div>
+        <div class="arrow">→</div>
+        <div class="out"><b>mendix</b>-bouncycastle-invalid-cipher-text-<u>error</u></div>
+      </div>
+
+      <div class="card">
+        <div class="what"><b>Price + product</b><span>schema.org markup</span></div>
+        <div class="arrow">→</div>
+        <div class="out"><b>amazon</b>-lenovo-legion-5i-gen-9-<u>79999</u></div>
+      </div>
+
+      <div class="card">
+        <div class="what"><b>Cleaned title</b><span>counters and filler removed</span></div>
+        <div class="arrow">→</div>
+        <div class="out"><b>mendix</b>-getting-started-with-widgets</div>
+      </div>
+
+      <div class="card reject">
+        <div class="what"><b>Nothing reliable</b><span>rather than a confident guess</span></div>
+        <div class="arrow">→</div>
+        <div class="out">falls back to a timestamp, and says so</div>
+      </div>
+    </div>
+
+    <div class="foot">Region · visible page · full scrolling page, stitched.</div>
+  </div>
+</body>
+</html>

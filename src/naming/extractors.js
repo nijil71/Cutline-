@@ -109,18 +109,59 @@ function splitCamel(s) {
     .filter(Boolean);
 }
 
+// Evidence that an exception name is being *reported* rather than merely
+// mentioned. Without this, an MDN page about TypeError, or any blog post that
+// says "ReferenceError", would name the screenshot after it.
+const ERROR_CONTEXT_NEAR = [
+  /caused by/i,
+  /stack\s*trace/i,
+  /traceback/i,
+  /\bunhandled\b/i,
+  /\buncaught\b/i,
+  /\bthrew\b|\bthrown\b/i,
+  /exception in thread/i,
+  /\berror\s*:/i,
+  /\bexception\s*:/i,
+  /\bfailed\b/i,
+];
+
+// A stack frame reads `    at com.acme.Thing`, so the evidence sits directly
+// before the class name. It has to be anchored to the end of the preceding
+// text: the identifier that would normally follow `at` is the match itself,
+// which is deliberately excluded from the context window.
+const STACK_FRAME_BEFORE = /(^|\n)[ \t]*at[ \t]+$/;
+
 /**
  * Turn `org.bouncycastle.crypto.InvalidCipherTextException` into
  * `["bouncycastle","invalid","cipher","text"]` — the distinctive package
  * segment plus the class name, minus the Exception/Error suffix.
+ *
+ * @param {string} text
+ * @param {{maxWords?: number, requireContext?: boolean}} [opts]
+ *   requireContext — demand nearby stack-trace/failure wording. Used for
+ *   whole-page text, skipped for a deliberate selection (selecting the text
+ *   *is* the signal).
  */
-export function findError(text, maxWords = 4) {
+export function findError(text, opts = {}) {
+  const { maxWords = 4, requireContext = false } = opts;
   if (!text) return null;
 
   EXCEPTION_RE.lastIndex = 0;
   let m;
   while ((m = EXCEPTION_RE.exec(text)) !== null) {
     const full = m[1];
+
+    if (requireContext) {
+      // Look either side of the match, never at the match itself — the class
+      // name contains "Exception"/"Error" and would vacuously satisfy the test.
+      const before = text.slice(Math.max(0, m.index - 160), m.index);
+      const after = text.slice(m.index + full.length, m.index + full.length + 160);
+      const around = `${before}\n${after}`;
+      const supported =
+        STACK_FRAME_BEFORE.test(before) || ERROR_CONTEXT_NEAR.some((re) => re.test(around));
+      if (!supported) continue;
+    }
+
     const segments = full.split('.');
     const className = segments[segments.length - 1];
 
@@ -141,13 +182,30 @@ export function findError(text, maxWords = 4) {
   return null;
 }
 
-const HTTP_STATUS_RE = /\b(?:HTTP\s*)?([45]\d{2})\b(?=[\s:—–-]*(?:[A-Z][a-z]+|error|Error))/;
+// Either an explicit label ("HTTP 500", "status: 404", "error 403") or a
+// number followed by its real reason phrase. A bare `[45]\d\d` is far too
+// common in ordinary text — "There are 500 Results" is not an outage.
+const HTTP_STATUS_RE = new RegExp(
+  '\\b(?:HTTP|status(?:\\s*code)?|error)\\s*[:=]?\\s*([45]\\d{2})\\b' +
+  '|\\b([45]\\d{2})\\s+(?:Not Found|Forbidden|Unauthorized|Bad Request|' +
+  'Internal Server Error|Bad Gateway|Service Unavailable|Gateway Timeout|' +
+  'Too Many Requests|Not Acceptable|Conflict|Gone|Payload Too Large|' +
+  'Unprocessable Entity|Request Timeout|Method Not Allowed)\\b',
+  'i',
+);
 
 /** e.g. "404 Not Found", "HTTP 500", "502 Bad Gateway" -> "404" */
 export function findHttpStatus(text) {
   if (!text) return null;
   const m = HTTP_STATUS_RE.exec(text);
-  return m ? m[1] : null;
+  if (!m) return null;
+  return m[1] || m[2] || null;
+}
+
+/** Numeric value of a price-ish string, or NaN. Used to reject 0 and junk. */
+export function priceValue(raw) {
+  if (raw == null) return NaN;
+  return Number(String(raw).replace(/[^0-9.]/g, ''));
 }
 
 const FAILURE_PHRASE_RE =

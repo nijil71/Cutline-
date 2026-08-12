@@ -7,7 +7,7 @@ import { slug, joinSlug, timestampSlug, dateFolder } from './slug.js';
 import { subjectWords } from './title-clean.js';
 import { stripControls } from './text-utils.js';
 import {
-  findTicket, findPrice, findError, findHttpStatus, normalizePrice,
+  findTicket, findPrice, findError, findHttpStatus, normalizePrice, priceValue,
 } from './extractors.js';
 
 /* -------------------------------------------------------------------- scope */
@@ -21,6 +21,15 @@ const TLD_LABELS = new Set([
   'nz', 'online', 'org', 'page', 'pe', 'ph', 'pl', 'pt', 'ro', 'ru', 'sa',
   'se', 'sg', 'sh', 'site', 'store', 'tech', 'th', 'to', 'tr', 'tv', 'ua',
   'uk', 'us', 'vn', 'xyz', 'za',
+]);
+
+// A one-word title is not automatically useless — "TypeError" or "Changelog"
+// identifies a page perfectly well. These are the one-word titles that identify
+// nothing, and that would otherwise collide forty times over.
+const GENERIC_TITLE_WORD = new Set([
+  'admin', 'app', 'dashboard', 'home', 'index', 'inbox', 'login', 'main', 'new',
+  'overview', 'page', 'profile', 'search', 'settings', 'signin', 'start',
+  'untitled', 'welcome',
 ]);
 
 // Hosts whose useful name is not their domain label.
@@ -237,7 +246,10 @@ export function buildName(ctx, settings, now = new Date()) {
   const words = subjectWords(titleSource, { scope, maxWords: s.maxWords || 5 });
   const subject = (n) => words.slice(0, n).map((w) => slug(w, { maxLen: 20 })).filter(Boolean);
 
-  const errorWords = findError(ctx.selection) || findError(ctx.text);
+  // A selection is a deliberate act, so it is trusted as-is. Whole-page text
+  // is not: an exception name there must be accompanied by failure wording.
+  const errorWords =
+    findError(ctx.selection) || findError(ctx.text, { requireContext: true });
   const status = findHttpStatus(ctx.selection || '') || findHttpStatus(ctx.title || '');
 
   // Only trust a price when the page actually claims to be selling something.
@@ -246,10 +258,11 @@ export function buildName(ctx, settings, now = new Date()) {
   const adapterPrice = adapter.price != null ? adapter.price : null;
   const jsonLdPrice = product && product.price != null ? product.price : null;
   const isCommerce = adapterPrice != null || jsonLdPrice != null || /product|item/i.test(ogType);
-  const price = isCommerce
-    ? normalizePrice(adapterPrice != null ? adapterPrice
-      : (jsonLdPrice != null ? jsonLdPrice : findPrice(haystack)))
-    : null;
+
+  const rawPrice = adapterPrice != null ? adapterPrice
+    : (jsonLdPrice != null ? jsonLdPrice : (isCommerce ? findPrice(haystack) : null));
+  // A free or unpriced listing must not append `-0`.
+  const price = isCommerce && priceValue(rawPrice) >= 1 ? normalizePrice(rawPrice) : null;
 
   let parts;
   let confidence;
@@ -276,8 +289,12 @@ export function buildName(ctx, settings, now = new Date()) {
     reason = `product price ${price}`;
   } else {
     parts = [scopeSlug, ...subject(s.maxWords || 5)];
-    confidence = words.length >= 2 ? 'medium' : 'low';
-    reason = words.length >= 2 ? 'page title' : 'title too thin';
+    const substantive = words.length >= 2 ||
+      (words.length === 1 &&
+        words[0].length >= 4 &&
+        !GENERIC_TITLE_WORD.has(words[0].toLowerCase()));
+    confidence = substantive ? 'medium' : 'low';
+    reason = substantive ? 'page title' : 'title too thin';
   }
 
   let base = joinSlug(parts, maxLen);
