@@ -3,6 +3,26 @@
 All notable changes to Cutline are documented here.
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-08-12
+
+### Added
+
+- **Right-click menu** offering all three capture modes. Full-page capture was
+  previously reachable only by keyboard shortcut, which put it out of reach for
+  anyone whose shortcut was already claimed by another application. The toolbar
+  icon deliberately remains a single click for region capture rather than
+  opening a popup, since that is the common case.
+- New permission: `contextMenus`. It produces no user-facing permission warning,
+  so existing installations update silently rather than being disabled pending
+  re-consent.
+
+### Fixed
+
+- Settings saved by a build predating the project rename are migrated onto the
+  current storage key on update. Without this they would remain in storage
+  under the old key — present, but invisible and unreachable — and every
+  updating user would appear to lose their private-sites list and folder rules.
+
 ## [1.0.0] — 2026-08-12
 
 First public release.
@@ -20,6 +40,9 @@ First public release.
   setups.
 - Captures are paced against Chrome's `captureVisibleTab` rate limit, with one
   retry, and abort if the tab stops being visible mid-stitch.
+- Every mode is reachable three ways: keyboard shortcut, toolbar icon (region),
+  and a right-click menu. The toolbar icon deliberately stays a single click
+  rather than opening a popup, since region capture is the common case.
 
 ### Naming
 

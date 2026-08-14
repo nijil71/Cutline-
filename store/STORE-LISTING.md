@@ -45,6 +45,8 @@ CAPTURE
 • Full scrolling page — captured in segments and stitched, with sticky headers
   hidden so they appear once instead of repeating down the image
 
+Reach any of them from the keyboard, the toolbar icon, or a right-click.
+
 HOW THE NAME IS BUILT
 Cutline reads the page, not the pixels. A tool that inspects an image has to
 find a price somewhere in it and hope it is the product rather than an instalment
@@ -113,6 +115,7 @@ Capturing an image and naming the resulting file is a single, narrow function.
 | `storage` | Cutline stores the user's own settings: base folder, date-folder format, filename length limits, the list of sensitive sites to exclude, and any host-to-folder rules. |
 | `clipboardWrite` | Cutline places the captured image on the clipboard immediately after capture, so it can be pasted straight into another application. |
 | `notifications` | Cutline notifies the user when a capture cannot proceed — for example on a browser internal page where extensions are blocked, or when the browser's screenshot rate limit is hit. Without this the failure would be silent. |
+| `contextMenus` | Cutline adds a right-click menu offering its three capture modes. Full-page capture would otherwise be reachable only by keyboard shortcut, leaving it inaccessible to any user whose shortcut is already claimed by another application. |
 
 **Host permissions:** none requested.
 
@@ -161,7 +164,34 @@ question about accuracy.
 - [ ] Confirm the uploaded zip contains no `test/`, `store/`, or `package.json`
 - [ ] Load the zip unpacked one final time and take one real screenshot with it
 
-## 5. After you submit
+## 5. Publishing an update to an already-listed item
+
+Same dashboard item, not a new one. Go to the existing listing → **Package** →
+**Upload new package**.
+
+1. **The version must increase.** The store refuses a package whose version
+   already exists. Check the version shown on the dashboard and make sure
+   `manifest.json` is higher before running `npm run package`.
+2. **Re-upload the privacy policy** if its content changed, at the same URL the
+   listing points to. A changed policy at a stale URL is a review problem.
+3. **Justify any new permission** on the Privacy practices tab. Adding one that
+   triggers a user-facing warning (host permissions, `tabs`, `history`)
+   **disables the extension for every existing user** until each of them
+   re-accepts it. Permissions that show no warning — `contextMenus`,
+   `storage`, `notifications`, `clipboardWrite`, `scripting`, `activeTab` —
+   update silently.
+4. **Refresh the listing text and screenshots** if the feature set moved. Both
+   are edited on the item, independently of the package.
+5. Submit for review. The listing stays live and users keep the old version
+   until the new one is approved, so a rejection is not an outage.
+6. Existing installs update themselves within a few hours of approval. There is
+   no way to force it sooner.
+
+**Check before every update:** if a release changed a `chrome.storage` key,
+ship a migration in the same version. Users' data is not lost when a key
+changes, but it becomes unreachable, which looks identical to them.
+
+## 6. After you submit
 
 Review usually takes a few days. The most common rejections for an extension
 like this are a permission justification that does not name a concrete feature,

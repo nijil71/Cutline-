@@ -5,7 +5,7 @@
 // clean page rather than a picture of our own UI. The content script does the
 // cropping and stitching (it has a real DOM) and sends the PNG back to save.
 
-import { loadSettings } from './config/settings.js';
+import { loadSettings, migrateLegacySettings } from './config/settings.js';
 import { buildName, sanitizeFileBase } from './naming/name-engine.js';
 
 const CONTENT_SCRIPT = 'src/content/capture.js';
@@ -146,7 +146,50 @@ chrome.commands.onCommand.addListener(async (command) => {
   if (mode) await startCapture(await activeTab(), mode);
 });
 
+// The toolbar icon stays a one-click region capture — that is the common case
+// and putting a popup in front of it would tax every use.
 chrome.action.onClicked.addListener((tab) => startCapture(tab, 'region'));
+
+/* ------------------------------------------------------------ context menu */
+
+// Without this, full-page capture is reachable only by keyboard shortcut, and
+// a user whose shortcut collides with something else would conclude the
+// feature does not exist. Clicking a context menu item grants activeTab the
+// same way the shortcut does, so this costs no extra page access.
+const MENU_ITEMS = [
+  { id: 'cutline-region', title: 'Capture region', mode: 'region' },
+  { id: 'cutline-viewport', title: 'Capture visible page', mode: 'viewport' },
+  { id: 'cutline-fullpage', title: 'Capture full scrolling page', mode: 'fullpage' },
+];
+
+const MENU_CONTEXTS = ['page', 'selection', 'image'];
+
+function buildMenus() {
+  // removeAll first: menu registrations survive a service worker restart, and
+  // re-creating an existing id throws.
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: 'cutline-root',
+      title: 'Cutline',
+      contexts: MENU_CONTEXTS,
+    });
+    for (const item of MENU_ITEMS) {
+      chrome.contextMenus.create({
+        id: item.id,
+        parentId: 'cutline-root',
+        title: item.title,
+        contexts: MENU_CONTEXTS,
+      });
+    }
+  });
+}
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  const item = MENU_ITEMS.find((m) => m.id === info.menuItemId);
+  if (item) startCapture(tab, item.mode);
+});
+
+chrome.runtime.onStartup.addListener(buildMenus);
 
 /* ----------------------------------------------------------------- messages */
 
@@ -226,5 +269,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 chrome.runtime.onInstalled.addListener((details) => {
+  buildMenus();
+  if (details.reason === 'update') migrateLegacySettings();
   if (details.reason === 'install') chrome.runtime.openOptionsPage();
 });

@@ -22,14 +22,20 @@ Not on the Web Store yet — load it unpacked.
 3. **Load unpacked** → select this folder
 4. The options page opens on first install
 
-| Shortcut | Action |
+| Trigger | Action |
 |---|---|
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> | Capture a region |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> · toolbar icon | Capture a region |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | Capture the visible page |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | Capture the full scrolling page |
-| Toolbar icon | Capture a region |
+| **Right-click any page → Cutline** | All three modes |
 
-Change them at `chrome://extensions/shortcuts`.
+Change the shortcuts at `chrome://extensions/shortcuts`.
+
+Every mode is reachable from the right-click menu, so a shortcut that collides
+with another application never puts a feature out of reach. Note that Chrome
+only auto-assigns a suggested shortcut on **first install** — a command added
+in a later update usually arrives unbound, and you set it yourself on the
+shortcuts page.
 
 ### Brave: rebind the shortcut
 
